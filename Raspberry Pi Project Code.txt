@@ -1,0 +1,69 @@
+import time
+import grovepi
+from grove_lcd import *
+from grovepi import *
+from grovepi import digitalRead
+
+# Ultrasonic sensor ports
+ultrasonic1_port = 4
+ultrasonic2_port = 3
+
+# Buzzer port
+buzzer_port = 6
+
+# Servo motor port
+servo_port = 7
+
+# Initialize the LCD
+lcd = GroveLcd()
+
+# Set the pin mode for the buzzer
+pinMode(buzzer_port, "OUTPUT")
+
+# Set the pin mode for the servo motor
+servo = servo_init(servo_port)
+
+def measure_distance(ultrasonic_port):
+    try:
+        # Read the ultrasonic sensor value
+        ultrasonic_value = ultrasonicRead(ultrasonic_port)
+        return ultrasonic_value
+
+    except KeyboardInterrupt:
+        return -1
+
+def display_message(line1, line2):
+    lcd.setRGB(0, 128, 64)  # Set LCD backlight to green
+    lcd.setText_norefresh(line1 + "\n" + line2)
+
+def empty_bin():
+    servo_angle(servo, 90)
+    time.sleep(1)
+    servo_angle(servo, 0)
+
+try:
+    while True:
+        # Measure distance in front of the dustbin using ultrasonic sensor 1
+        front_distance = measure_distance(ultrasonic1_port)
+
+        # Measure garbage level inside the dustbin using ultrasonic sensor 2
+        garbage_distance = measure_distance(ultrasonic2_port)
+
+        # Check if object is detected in front of the dustbin
+        if front_distance < 20:
+            display_message("Dustbin is open", "Give me Garbage.")
+        else:
+            display_message("Dustbin is closed", "")
+
+        # Check if dustbin is full
+        if garbage_distance < 20:
+            display_message("Dustbin is Full", "Collect Garbage.")
+            digitalWrite(buzzer_port, 1)  # Turn on the buzzer
+            empty_bin()
+            time.sleep(2)
+            digitalWrite(buzzer_port, 0)  # Turn off the buzzer
+
+        time.sleep(0.1)
+
+except KeyboardInterrupt:
+    pass
